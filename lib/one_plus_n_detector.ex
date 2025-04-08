@@ -16,19 +16,23 @@ defmodule OnePlusNDetector do
   @exclude_match ["oban_jobs", "oban_peers", "oban_insert", "pg_notify", "pg_try_advisory_xact_lock"]
 
   def setup(repo_module) do
-    config = repo_module.config()
-    prefix = config[:telemetry_prefix]
-    # ^ Telemetry event id for Ecto queries
-    query_event = prefix ++ [:query]
+    if Code.ensure_loaded?(:telemetry) do
+      config = repo_module.config()
+      prefix = config[:telemetry_prefix]
+      # ^ Telemetry event id for Ecto queries
+      query_event = prefix ++ [:query]
 
-    Logger.debug "Setting up n+1 logging..."
+      Logger.debug "Setting up n+1 logging..."
 
-    :telemetry.attach(
-      "one_plus_n_detector",
-      query_event,
-      &OnePlusNDetector.handle_event/4,
-      []
-    )
+      :telemetry.attach(
+        "one_plus_n_detector",
+        query_event,
+        &OnePlusNDetector.handle_event/4,
+        []
+      )
+    else
+      Logger.debug "Cannot set up n+1 logging"
+    end
   end
 
   def handle_event(
